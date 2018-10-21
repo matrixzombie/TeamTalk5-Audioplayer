@@ -1,0 +1,22 @@
+#!/bin/zsh
+export origterm=$@
+export term=`echo $origterm lyrics`
+export url=`youtube-dl --default-search ytsearch --restrict-filenames -g -x $term 2> /dev/null`
+export attemptcounter=1
+while true;do
+if echo $url|grep -q http;then
+break
+else
+unset term
+export term=`echo $origterm`
+unset url
+export url=`youtube-dl --default-search ytsearch --restrict-filenames -g -x $term 2> /dev/null`
+fi
+export attemptcounter=$(($attemptcounter+1))
+if [ $attemptcounter -gt 5 ];then
+echo "No results found or system error. "
+exit 1
+fi
+done
+youtube-dl -i -x --audio-format mp3 --prefer-ffmpeg -o "C:/Apache24/htdocs/songs/$term.%(ext)s" $url
+exit 0

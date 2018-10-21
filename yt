@@ -1,0 +1,31 @@
+#!/bin/zsh
+export origterm=`echo $@|cut -d "|" -f 1`
+export num=`echo $@|cut -d "|" -f 2`
+export term=`echo $origterm lyrics`
+if [ $num = "1" ];then
+export url=`youtube-dl --default-search ytsearch --restrict-filenames -g -x $term 2> /dev/null`
+else
+export url=`youtube-dl --default-search ytsearch:$num --restrict-filenames -g -x $term 2> /dev/null`
+fi
+export attemptcounter=1
+while true;do
+if echo $url|grep -q http;then
+break
+else
+unset term
+export term=`echo $origterm`
+unset url
+if [ $num = "1" ];then
+export url=`youtube-dl --default-search ytsearch --restrict-filenames -g -x $term 2> /dev/null`
+else
+export url=`youtube-dl --default-search ytsearch:$num --restrict-filenames -g -x $term 2> /dev/null`
+fi
+fi
+export attemptcounter=$(($attemptcounter+1))
+if [ $attemptcounter -gt 5 ];then
+echo "No results found or system error. "
+exit 1
+fi
+done
+mplayer.exe -quiet -novideo $url 2>/dev/null&
+exit 0

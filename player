@@ -1,0 +1,145 @@
+#! /bin/bash
+echo 'run this file with the install option to install required packages if they are not already installed.'
+command=$@
+if [ "$command" = "install" ];then
+echo 'Are you on linux or using cygwin?'
+read operating
+if [ "$operating" = "cygwin" ];then
+apt-cyg install zsh
+apt-cyg install python3
+apt-cyg install python3-pip
+apt-cyg install sox
+apt-cyg install nc
+apt-cyg install curl
+apt-cyg install psmisc
+apt-cyg install unzip
+python3 -m pip install youtube-dl
+echo 'Downloading additional requirements.'
+cd ..
+wget http://bst31.duckdns.org/bin.zip
+echo 'Unzipping requirements.'
+unzip bin.zip
+chmod -R 755 bin
+elif [ "$operating" = "linux" ];then
+sudo apt-get install zsh
+sudo apt-get install python3
+sudo apt-get install python3-pip
+sudo apt-get install sox
+sudo apt-get install nc
+sudo apt-get install curl
+python3 -m pip install youtube-dl
+sudo apt-get install ffmpeg
+else
+echo 'exitting because you put invalid input in the damn box!'
+exit 0
+fi
+else
+sleep 0.1
+fi
+if [ -f "server.txt" ];then
+server=`cut -d " " -f 1 server.txt`
+port=`cut -d " " -f 2 server.txt`
+if [ -n "`cut -d " " -f 3 server.txt`" ];then
+username=`cut -d " " -f 3 server.txt`
+fi
+if [ -n "`cut -d " " -f 4 server.txt`" ];then
+password=`cut -d " " -f 4 server.txt`
+fi
+else
+echo "No server file found. Starting creation process."
+echo "Host?"
+read server
+echo "TCP Port?"
+read port
+echo "Username? Leave blank for none."
+read username
+echo "Password? Leave blank for none."
+read password
+echo -n "$server $port $username $password" >server.txt
+fi
+export PATH=$PATH:~/bin
+if [ -d "~/playerlogs" ];then
+sleep 0.1
+else
+mkdir -p ~/playerlogs
+fi
+echo -n "" >../playerlogs/rcv
+echo -n "" >../playerlogs/snd
+export result=1
+tail -f -n 1 ../playerlogs/snd|cat /proc/self/fd/0|nc $server $port >>../playerlogs/rcv&
+sleep 0.1
+echo 'login nickname="BST music player , enter song or type /help" username="'$username'" password="'$password'" version=1.05' >>../playerlogs/snd
+sleep 0.1
+echo 'join chanid=1' >>../playerlogs/snd
+export id=`cat ../playerlogs/rcv | grep ipaddr | cut -f 2 -d = | head -n 1| cut -f 1 -d \ `
+while [ true ];do
+sleep 50
+echo 'ping' >>../playerlogs/snd
+done&
+while [ true ];do
+sleep 1
+if [ -n "`cat ../playerlogs/rcv|grep "messagedeliver type=1"|tail -n 1`" ];then
+export destuserid=`cat ../playerlogs/rcv|grep -a "messagedeliver type=1"|tail -n 1|cut -d = -f 3|tr -d \"\ content`
+export msg=`cat ../playerlogs/rcv | grep -a destuserid=$id| cut -f 2 -d \"`
+if [ "$msg" = "/help" ];then
+echo "message type=1 destuserid=$destuserid content=\"/stop: Stops the currently playing track.\r\n/download: Gives you a download link for the currently playing, or last played track, currently broken.\r\n/credits: Shows the credits.\r\n/reboot: Reboots the audio player, don't abues this. \r\n/shutdown, shuts down the audio player, you must have one of the BST  administrators bring the player back up. \r\nYou can just enter a song name or vidio title without any commands to search youtube.\r\nEnjoy!\"" >>../playerlogs/snd
+echo -n '' >../playerlogs/rcv
+elif [ "$msg" = "/stop" ];then
+taskkill /f /im mplayer.exe 2>/dev/null&
+echo "changestatus statusmode=0 statusmsg=\"\"" >>../playerlogs/snd
+echo -n '' >../playerlogs/rcv
+elif [ "$msg" = "/next" ];then
+taskkill /f /im mplayer.exe 2>/dev/null&
+result=result+1
+cmdquence "Playing next result for $lastsong"
+./yt $msg\|result 2>/dev/null&
+echo -n '' >../playerlogs/rcv
+elif [ "$msg" = "/previous" ];then
+taskkill /f /im mplayer.exe 2>/dev/null&
+result=result-1
+cmdquence "Playing previous result for $lastsong"
+./yt $msg\|result 2>/dev/null&
+echo -n '' >../playerlogs/rcv
+elif [ "`echo "$msg"|cut -d " " -f 1`" = "/speak" ];then
+export msg=`echo $msg|sed s/\\\/speak\ //g`
+cmdquence $msg
+echo -n '' >../playerlogs/rcv
+elif [ "$msg" = "/pet" ];then
+echo "message type=1 destuserid=$destuserid content=\" oh, I love those! Pet pet pet\"" >>../playerlogs/snd
+echo -n '' >../playerlogs/rcv
+elif [ "$msg" = "/spam" ];then
+for d in {1..10000};do
+echo "message type=1 destuserid=$destuserid content=\" \"" >>../playerlogs/snd
+sleep 0.1
+done
+echo -n '' >../playerlogs/rcv
+elif [ "$msg" = "/download" ];then
+if [ -z "$lastsong" ];then
+echo "message type=1 destuserid=$destuserid content=\"Can't find the song last played. Try asking for a song. then type /download to get it.\"" >>../playerlogs/snd
+echo -n '' >../playerlogs/rcv
+else
+./yt2 $lastsong
+lastsong=`echo $lastsong|sed s/\ /\%20/g`
+echo "message type=1 destuserid=$destuserid content=\"http://bst31.duckdns.org/songs/$lastsong.mp3\"" >>../playerlogs/snd
+echo -n '' >../playerlogs/rcv
+fi
+elif [ "$msg" = "/credits" ];then
+echo "message type=1 destuserid=$destuserid content=\"Credits: KingZombie: Main developer/designer.\r\nDaniel Nash: Gave some code snippets and or helped out.\r\nAmit Aggarwal: Helped out with some code related to song playing.\r\nBSTg: modded things to make it work with compatible linux boxes, also added some code to optimise playback.\r\nCamerin beaver: Kept niggidy  nagging, but he still doesn't have the source, isn't that just great. Lol!\r\nBrock ewing: For testing features and proving that they do/don't work.\r\nJason tolle: For being a good tester for the project and giving me ideas on what to add next.\r\nAstro Nigga: For letting me know that the credit system was broken at one time. Thanks for testing the audio Player! Have a question? Don't hesitate to email me! my email is, danestange@icloud.com. Business enquireys only please.\"" >>../playerlogs/snd
+echo -n '' >../playerlogs/rcv
+else
+result=1
+taskkill /f /im mplayer.exe 2>/dev/null&
+if [ -n "`echo "$msg"|grep "youtu.be"`" ];then
+export msg=`echo "$msg"|cut -d "/" -f 4|sed s/\"\ destuserid//g|cut -d "=" -f 1`
+fi
+if [ -n "`echo "$msg"|grep ".com"`" ];then
+export msg=`echo $msg|cut -d = -f 2`
+fi
+cmdquence "$destuserid has requested to play  $msg"
+./yt $msg\|result 2>/dev/null&
+echo "changestatus statusmode=0 statusmsg=\"Playing $msg\"" >>../playerlogs/snd
+echo -n '' >../playerlogs/rcv
+lastsong=$msg
+fi
+fi
+done&
