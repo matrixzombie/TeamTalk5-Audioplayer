@@ -8,29 +8,21 @@ if [ "$operating" = "cygwin" ];then
 apt-cyg install zsh
 apt-cyg install python3
 apt-cyg install python3-pip
-apt-cyg install sox
 apt-cyg install nc
 apt-cyg install curl
-apt-cyg install psmisc
-apt-cyg install unzip
+apt-cyg install espeak
 python3 -m pip install youtube-dl
-echo 'Downloading additional requirements.'
-cd ..
-wget http://bst31.duckdns.org/bin.zip
-echo 'Unzipping requirements.'
-unzip bin.zip
-chmod -R 755 bin
 elif [ "$operating" = "linux" ];then
 sudo apt-get install zsh
 sudo apt-get install python3
 sudo apt-get install python3-pip
-sudo apt-get install sox
 sudo apt-get install nc
 sudo apt-get install curl
 python3 -m pip install youtube-dl
 sudo apt-get install ffmpeg
+sudo apt-get install mplayer
 else
-echo 'exitting because you put invalid input in the damn box!'
+echo 'exitting because you put invalid input in the box!'
 exit 0
 fi
 else
@@ -68,7 +60,7 @@ echo -n "" >../playerlogs/snd
 export result=1
 tail -f -n 1 ../playerlogs/snd|cat /proc/self/fd/0|nc $server $port >>../playerlogs/rcv&
 sleep 0.1
-echo 'login nickname="BST music player , enter song or type /help" username="'$username'" password="'$password'" version=1.05' >>../playerlogs/snd
+echo 'login nickname="Zombie Music Player enter song or /help" username="'$username'" password="'$password'" version=1.05' >>../playerlogs/snd
 sleep 0.1
 echo 'join chanid=1' >>../playerlogs/snd
 export id=`cat ../playerlogs/rcv | grep ipaddr | cut -f 2 -d = | head -n 1| cut -f 1 -d \ `
@@ -91,18 +83,18 @@ echo -n '' >../playerlogs/rcv
 elif [ "$msg" = "/next" ];then
 taskkill /f /im mplayer.exe 2>/dev/null&
 result=result+1
-cmdquence "Playing next result for $lastsong"
+espeak -g 200 "Playing next result for $lastsong"
 ./yt $msg\|result 2>/dev/null&
 echo -n '' >../playerlogs/rcv
 elif [ "$msg" = "/previous" ];then
 taskkill /f /im mplayer.exe 2>/dev/null&
 result=result-1
-cmdquence "Playing previous result for $lastsong"
+espeak -g 200 "Playing previous result for $lastsong"
 ./yt $msg\|result 2>/dev/null&
 echo -n '' >../playerlogs/rcv
 elif [ "`echo "$msg"|cut -d " " -f 1`" = "/speak" ];then
 export msg=`echo $msg|sed s/\\\/speak\ //g`
-cmdquence $msg
+espeak -g 200 $msg
 echo -n '' >../playerlogs/rcv
 elif [ "$msg" = "/pet" ];then
 echo "message type=1 destuserid=$destuserid content=\" oh, I love those! Pet pet pet\"" >>../playerlogs/snd
@@ -135,7 +127,7 @@ fi
 if [ -n "`echo "$msg"|grep ".com"`" ];then
 export msg=`echo $msg|cut -d = -f 2`
 fi
-cmdquence "$destuserid has requested to play  $msg"
+espeak -g 200 "$destuserid has requested to play  $msg"
 ./yt $msg\|result 2>/dev/null&
 echo "changestatus statusmode=0 statusmsg=\"Playing $msg\"" >>../playerlogs/snd
 echo -n '' >../playerlogs/rcv
