@@ -83,18 +83,18 @@ echo -n '' >../playerlogs/rcv
 elif [ "$msg" = "/next" ];then
 taskkill /f /im mplayer.exe 2>/dev/null&
 result=result+1
-espeak -g 200 "Playing next result for $lastsong"
+cmdquence "Playing next result for $lastsong"
 ./yt $msg\|result 2>/dev/null&
 echo -n '' >../playerlogs/rcv
 elif [ "$msg" = "/previous" ];then
 taskkill /f /im mplayer.exe 2>/dev/null&
 result=result-1
-espeak -g 200 "Playing previous result for $lastsong"
+cmdquence "Playing previous result for $lastsong"
 ./yt $msg\|result 2>/dev/null&
 echo -n '' >../playerlogs/rcv
 elif [ "`echo "$msg"|cut -d " " -f 1`" = "/speak" ];then
 export msg=`echo $msg|sed s/\\\/speak\ //g`
-espeak -g 200 $msg
+cmdquence $msg
 echo -n '' >../playerlogs/rcv
 elif [ "$msg" = "/pet" ];then
 echo "message type=1 destuserid=$destuserid content=\" oh, I love those! Pet pet pet\"" >>../playerlogs/snd
@@ -127,7 +127,7 @@ fi
 if [ -n "`echo "$msg"|grep ".com"`" ];then
 export msg=`echo $msg|cut -d = -f 2`
 fi
-espeak -g 200 "$destuserid has requested to play  $msg"
+cmdquence "$destuserid has requested to play  $msg"
 ./yt $msg\|result 2>/dev/null&
 echo "changestatus statusmode=0 statusmsg=\"Playing $msg\"" >>../playerlogs/snd
 echo -n '' >../playerlogs/rcv
